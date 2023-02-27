@@ -32,9 +32,19 @@ Download the source code of [[https://github.com/riscy/melpazoid#use-it-locally]
 #+end_src
 
 *** With use package and straight
+Example configuration:
+
 #+begin_src elisp :eval no
+(use-package melpazoid
+  :straight (melpazoid
+             :build nil
+             :type git
+             :repo "riscy/melpazoid"
+             :host github))
+
 (use-package melpazoid-flymake
-  :init (setq melpazoid-flymake-directory "~/.emacs.d/melpazoid")
+  :init (setq melpazoid-flymake-directory (straight--repos-dir
+                                           "melpazoid"))
   :straight (melpazoid-flymake
              :repo "KarimAziev/melpazoid-flymake"
              :type git
@@ -54,7 +64,7 @@ Run flymake with melpazoid-flymake backend.
 Disable Flymake backend.
 *** ~melpazoid-flymake-enable~
 Enable Flymake with melpazoid-flymake backend.
-*** ~melpazoid-flymake-lint-melpazoid-add-template~  (directory)
+*** ~melpazoid-flymake-add-template~  (directory)
 Download melpazoid template to ~.github/workflows/melpazoid.yml~ in =directory=.
 ** Customization
 
