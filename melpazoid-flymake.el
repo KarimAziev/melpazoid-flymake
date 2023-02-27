@@ -33,11 +33,7 @@
 (require 'url-parse)
 (require 'find-func)
 
-(defcustom melpazoid-flymake-directory (ignore-errors
-                                         (file-name-parent-directory
-                                          (file-name-parent-directory
-                                           (find-library-name
-                                            "melpazoid"))))
+(defcustom melpazoid-flymake-directory nil
   "Melpazoid directory."
   :group 'melpazoid
   :type 'directory)
@@ -255,6 +251,16 @@ PROBLEM is a list of file, line and text."
      :error
      text)))
 
+(defun melpazoid-flymake-compile ()
+  "Run melpazoid check on current file with compile command."
+  (interactive)
+  (when-let ((dir default-directory)
+             (recipe (melpazoid-flymake-get-recipe)))
+    (compile (format "RECIPE='%s' LOCAL_REPO='%s' make -C %s"
+                     recipe
+                     (shell-quote-argument dir)
+                     (shell-quote-argument melpazoid-flymake-directory)))))
+
 (defun melpazoid-flymake-report (callback &rest _)
   "Create melpazoid process for current buffer.
 Invoke CALLBACK with flymake diagnostics."
@@ -296,9 +302,10 @@ Invoke CALLBACK with flymake diagnostics."
   (unless melpazoid-flymake-directory
     (setq melpazoid-flymake-directory
           (ignore-errors
-            (file-name-parent-directory (file-name-parent-directory
-                                         (find-library-name
-                                          "melpazoid"))))))
+            (when (boundp 'file-name-parent-directory)
+              (file-name-parent-directory (file-name-parent-directory
+                                           (find-library-name
+                                            "melpazoid")))))))
   (unless melpazoid-flymake-directory
     (user-error
      "melpazoid-flymake: `melpazoid-flymake-directory' is not set"))

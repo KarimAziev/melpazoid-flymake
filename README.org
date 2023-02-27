@@ -51,7 +51,8 @@ Example configuration:
              :host github)
   :commands (melpazoid-flymake-disable
              melpazoid-flymake-enable
-             melpazoid-flymake-lint-melpazoid-add-template))
+             melpazoid-flymake-add-template
+             melpazoid-flymake-compile))
 #+end_src
 
 ** Minor mode
@@ -66,6 +67,8 @@ Disable Flymake backend.
 Enable Flymake with melpazoid-flymake backend.
 *** ~melpazoid-flymake-add-template~  (directory)
 Download melpazoid template to ~.github/workflows/melpazoid.yml~ in =directory=.
+*** ~melpazoid-flymake-compile~
+Run melpazoid check on current file with compile command.
 ** Customization
 
 *** ~melpazoid-flymake-directory~
