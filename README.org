@@ -1,0 +1,62 @@
+* melpazoid-flymake
+
+Flymake Backend With Melpazoid.
+
+** Requirenments:
+
+- Emacs >= 27.1
+  melpazoid [[https://github.com/riscy/melpazoid#use-it-locally][requirements]]:
+  - Docker
+  - python >=3.6
+
+** Installation
+
+*** Manual
+
+Download the source code and put it wherever you like, e.g. into =~/.emacs.d/melpazoid-flymake/=.
+
+#+begin_src shell :eval no
+git clone https://github.com/KarimAziev/melpazoid-flymake.git ~/.emacs.d/melpazoid-flymake/
+#+end_src
+Add the downloaded directory to the load path:
+
+#+begin_src elisp :eval no
+(add-to-list 'load-path "~/.emacs.d/melpazoid-flymake/")
+(require 'melpazoid-flymake)
+#+end_src
+
+Download the source code of [[https://github.com/riscy/melpazoid#use-it-locally][melpazoid]] directory and it either to the load path or ~melpazoid-flymake-directory~:
+
+#+begin_src elisp :eval no
+(setq melpazoid-flymake-directory "~/.emacs.d/melpazoid").
+#+end_src
+
+*** With use package and straight
+#+begin_src elisp :eval no
+(use-package melpazoid-flymake
+  :init (setq melpazoid-flymake-directory "~/.emacs.d/melpazoid")
+  :straight (melpazoid-flymake
+             :repo "KarimAziev/melpazoid-flymake"
+             :type git
+             :host github)
+  :commands (melpazoid-flymake-disable
+             melpazoid-flymake-enable
+             melpazoid-flymake-lint-melpazoid-add-template))
+#+end_src
+
+** Minor mode
+
+*** ~melpazoid-flymake-mode~
+Run flymake with melpazoid-flymake backend.
+** Commands
+
+*** ~melpazoid-flymake-disable~
+Disable Flymake backend.
+*** ~melpazoid-flymake-enable~
+Enable Flymake with melpazoid-flymake backend.
+*** ~melpazoid-flymake-lint-melpazoid-add-template~  (directory)
+Download melpazoid template to ~.github/workflows/melpazoid.yml~ in =directory=.
+** Customization
+
+*** ~melpazoid-flymake-directory~
+Melpazoid directory.
