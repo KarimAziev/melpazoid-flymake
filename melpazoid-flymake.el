@@ -145,10 +145,7 @@ Recipe is a list, e.g. (PACKAGE-NAME :repo \"owner/repo\" :fetcher github)."
           (let ((default-directory directory))
             (melpazoid-flymake-get-recipe-plist)))
          (name (or package-name
-                   (directory-files (let ((default-directory directory))
-                                      (vc-root-dir))
-                                    t
-                                    directory-files-no-dot-files-regexp)
+                   (melpazoid-flymake-find-package-name directory)
                    (car (last (split-string
                                (plist-get recipe :repo) "/" t))))))
     (list (if (stringp name)
