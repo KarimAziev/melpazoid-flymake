@@ -172,9 +172,9 @@ Recipe is a list, e.g. (PACKAGE-NAME :repo \"owner/repo\" :fetcher github)."
       (kill-buffer download-buffer))))
 
 ;;;###autoload
-(defun melpazoid-flymake-lint-melpazoid-add-template (directory)
+(defun melpazoid-flymake-add-template (directory)
   "Download melpazoid template to .github/workflows/melpazoid.yml in DIRECTORY."
-  (interactive (read-directory-name "Directory: "))
+  (interactive (list (read-directory-name "Directory: ")))
   (let ((vc-root))
     (cond ((not (file-exists-p directory))
            (user-error "Directory %s doesn't exist" directory))
@@ -188,13 +188,12 @@ Recipe is a list, e.g. (PACKAGE-NAME :repo \"owner/repo\" :fetcher github)."
                (make-directory dir 'parents))
              (let
                  ((melpazoid-str
-                   (funcall
-                    (melpazoid-flymake-replace-template
-                     (melpazoid-flymake-get-melpa-recipe-in-dir
-                      vc-root)
-                     nil
-                     (melpazoid-flymake-download-url
-                      "https://raw.githubusercontent.com/riscy/melpazoid/master/melpazoid.yml")))))
+                   (melpazoid-flymake-replace-template
+                    (melpazoid-flymake-get-melpa-recipe-in-dir
+                     vc-root)
+                    nil
+                    (melpazoid-flymake-download-url
+                     "https://raw.githubusercontent.com/riscy/melpazoid/master/melpazoid.yml"))))
                (write-region melpazoid-str nil
                              (expand-file-name
                               "melpazoid.yml" dir))))))))
