@@ -251,6 +251,7 @@ PROBLEM is a list of file, line and text."
      :error
      text)))
 
+;;;###autoload
 (defun melpazoid-flymake-compile ()
   "Run melpazoid check on current file with compile command."
   (interactive)
