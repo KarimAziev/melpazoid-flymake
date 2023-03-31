@@ -6,7 +6,7 @@
 ;; URL: https://github.com/KarimAziev/melpazoid-flymake
 ;; Version: 0.1.0
 ;; Keywords: docs
-;; Package-Requires: ((emacs "27.1") (flymake "1.2.2"))
+;; Package-Requires: ((emacs "28.1") (flymake "1.2.2"))
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -102,8 +102,7 @@
 
 (defun melpazoid-flymake-find-package-name (directory)
   "Find provided feature name in root VC directory of DIRECTORY."
-  (let* ((files (directory-files (let ((default-directory directory))
-                                   (vc-root-dir))
+  (let* ((files (directory-files (project-root (project-current nil directory))
                                  t
                                  directory-files-no-dot-files-regexp))
          (el-files (seq-filter (lambda (it)
@@ -164,16 +163,15 @@ Recipe is a list, e.g. (PACKAGE-NAME :repo \"owner/repo\" :fetcher github)."
           (buffer-string))
       (kill-buffer download-buffer))))
 
+
 ;;;###autoload
 (defun melpazoid-flymake-add-template (directory)
   "Download melpazoid template to .github/workflows/melpazoid.yml in DIRECTORY."
-  (interactive (list (read-directory-name "Directory: ")))
-  (let ((vc-root))
+  (interactive (list (read-directory-name "Project Directory: ")))
+  (let ((default-directory (expand-file-name (project-root (project-current
+                                                            nil directory)))))
     (cond ((not (file-exists-p directory))
            (user-error "Directory %s doesn't exist" directory))
-          ((not (setq vc-root (let ((default-directory directory))
-                                (vc-root-dir))))
-           (user-error "Directory %s should be a vc root" directory))
           (t
            (let ((dir
                   (expand-file-name ".github/workflows" directory)))
@@ -183,7 +181,7 @@ Recipe is a list, e.g. (PACKAGE-NAME :repo \"owner/repo\" :fetcher github)."
                  ((melpazoid-str
                    (melpazoid-flymake-replace-template
                     (melpazoid-flymake-get-melpa-recipe-in-dir
-                     vc-root)
+                     directory)
                     nil
                     (melpazoid-flymake-download-url
                      "https://raw.githubusercontent.com/riscy/melpazoid/master/melpazoid.yml"))))
