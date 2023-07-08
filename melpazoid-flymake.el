@@ -97,7 +97,8 @@
             nil t)
            (match-string-no-properties 1))
           ((re-search-backward "(provide-me)" nil t)
-           (file-name-sans-extension (file-name-nondirectory buffer-file-name))))))
+           (file-name-sans-extension
+            (file-name-nondirectory buffer-file-name))))))
 
 
 (defun melpazoid-flymake-find-package-name (directory)
@@ -213,28 +214,51 @@ Recipe is a list, e.g. (PACKAGE-NAME :repo \"owner/repo\" :fetcher github)."
 
 (defvar melpazoid-flymake--process nil)
 
+(defun melpazoid-flymake--report-errors-by-regex (regex line-subexp text-subext
+                                                        &optional dir)
+  "Find errors matching REGEX in current buffer.
+LINE-SUBEXP and TEXT-SUBEXT specify the matching subexpressions for line number
+and error message.
+Return the list of form (file line error).
+If DIR is provided, expand file to absolute, using DIR as default directory."
+  (let ((problems))
+    (goto-char (point-max))
+    (while (re-search-backward regex
+                               nil
+                               t 1)
+      (let ((line (match-string-no-properties line-subexp))
+            (text (match-string-no-properties text-subext)))
+        (let ((file (string-trim
+                     (buffer-substring-no-properties
+                      (line-beginning-position)
+                      (point)))))
+          (push (list
+                 (if dir
+                     (expand-file-name file dir)
+                   file)
+                 (string-to-number line)
+                 (string-join (split-string text nil t) " "))
+                problems))))
+    problems))
+
+
 (defun melpazoid-flymake--report (stdout-buffer dir)
   "Create Flymake diag messages from contents of STDOUT-BUFFER and DIR.
 Return a list of results (file line text)."
-  (let ((problems))
+  (let ((problems)
+        (alist `(("\\(:\\([0-9]+\\):\\([0-9]+\\):\\(\\([^\n]+\\)[\n]\\([\s][^\n]+\\)?\\)\\)"
+                  2 4 ,dir)
+                 ("#L\\(\\([0-9]+\\):[\s\t]?\\([^\n]+\\)\\)"
+                  2 3 ,dir))))
     (with-current-buffer stdout-buffer
-      (goto-char (point-max))
-      (while (re-search-backward "#L\\(\\([0-9]+\\):[\s\t]?\\([^\n]+\\)\\)" nil
-                                 t 1)
-        (let ((line (match-string-no-properties 2))
-              (text (match-string-no-properties 3)))
-          (let ((file (replace-regexp-in-string "^[-][\s]+" ""
-                                                (buffer-substring-no-properties
-                                                 (line-beginning-position)
-                                                 (point)))))
-            (push (list
-                   (expand-file-name file
-                                     dir)
-                   (string-to-number line) text)
-                  problems)))))
+      (dolist (args alist)
+        (goto-char (point-max))
+        (setq problems (nconc problems
+                              (apply #'melpazoid-flymake--report-errors-by-regex
+                                     args)))))
     problems))
 
-(defun melpazoid-flymake-eslint-make-diag (problem)
+(defun melpazoid-flymake-make-diag (problem)
   "Make diag from PROBLEM.
 PROBLEM is a list of file, line and text."
   (pcase-let* ((`(,file ,line ,text)
@@ -249,16 +273,40 @@ PROBLEM is a list of file, line and text."
      :error
      text)))
 
+(defvar melpazoid-flymake-temp-directory nil)
+(defun melpazoid-flymake-setup-temp-dir ()
+  "Copy melpazoid dir to temporarily directory to adjust makefile."
+  (unless melpazoid-flymake-temp-directory
+    (setq melpazoid-flymake-temp-directory
+          (concat (temporary-file-directory)
+                  "melpazoid-flymake-check")))
+  (let ((makefile (expand-file-name "Makefile"
+                                    melpazoid-flymake-temp-directory)))
+    (unless (file-exists-p (expand-file-name "Makefile"
+                                             melpazoid-flymake-temp-directory))
+      (copy-directory
+       melpazoid-flymake-directory
+       melpazoid-flymake-temp-directory)
+      (with-temp-buffer
+        (insert-file-contents makefile)
+        (goto-char (point-max))
+        (when (re-search-backward "--progress=plain " nil t 1)
+          (replace-match "" nil nil nil 0))
+        (write-region (buffer-string) nil makefile nil nil nil nil)))))
+
 ;;;###autoload
 (defun melpazoid-flymake-compile ()
   "Run melpazoid check on current file with compile command."
   (interactive)
-  (when-let ((dir default-directory)
-             (recipe (melpazoid-flymake-get-recipe)))
-    (compile (format "RECIPE='%s' LOCAL_REPO='%s' make -C %s"
-                     recipe
-                     (shell-quote-argument dir)
-                     (shell-quote-argument melpazoid-flymake-directory)))))
+  (let ((dir default-directory)
+        (recipe (melpazoid-flymake-get-recipe)))
+    (melpazoid-flymake-setup-temp-dir)
+    (let ((default-directory dir))
+      (compile (format "RECIPE='%s' LOCAL_REPO='%s' make -C %s"
+                       recipe
+                       (shell-quote-argument dir)
+                       (shell-quote-argument
+                        melpazoid-flymake-temp-directory))))))
 
 (defun melpazoid-flymake-report (callback &rest _)
   "Create melpazoid process for current buffer.
@@ -273,6 +321,7 @@ Invoke CALLBACK with flymake diagnostics."
                                (shell-quote-argument default-directory)))))
         (default-directory default-directory)
         (callback callback))
+    (melpazoid-flymake-setup-temp-dir)
     (setq melpazoid-flymake--process
           (make-process
            :name "melpazoid-flymake"
@@ -281,7 +330,8 @@ Invoke CALLBACK with flymake diagnostics."
            :buffer (generate-new-buffer " *melpazoid-flymake*")
            :command `("make"
                       "-C"
-                      ,(shell-quote-argument melpazoid-flymake-directory))
+                      ,(shell-quote-argument
+                        melpazoid-flymake-temp-directory))
            :sentinel
            (lambda (proc &rest _ignored)
              (when (and (eq 'exit (process-status proc)))
@@ -291,7 +341,7 @@ Invoke CALLBACK with flymake diagnostics."
                                  default-directory)))
                  (funcall
                   callback
-                  (mapcar #'melpazoid-flymake-eslint-make-diag
+                  (mapcar #'melpazoid-flymake-make-diag
                           problems)))))))))
 
 ;;;###autoload
@@ -301,7 +351,7 @@ Invoke CALLBACK with flymake diagnostics."
   (unless melpazoid-flymake-directory
     (setq melpazoid-flymake-directory
           (ignore-errors
-            (when (boundp 'file-name-parent-directory)
+            (when (fboundp 'file-name-parent-directory)
               (file-name-parent-directory (file-name-parent-directory
                                            (find-library-name
                                             "melpazoid")))))))
@@ -327,6 +377,7 @@ Invoke CALLBACK with flymake diagnostics."
                    #'melpazoid-flymake-report t)
       (when fmode
         (flymake-mode 1)))))
+
 
 ;;;###autoload
 (define-minor-mode melpazoid-flymake-mode
