@@ -101,8 +101,13 @@
             (file-name-nondirectory buffer-file-name))))))
 
 
-(defun melpazoid-flymake-find-package-name (directory)
-  "Find provided feature name in root VC directory of DIRECTORY."
+(defun melpazoid-flymake-find-package-name (directory &optional recipe)
+  "Extract package name from Emacs Lisp files.
+
+Argument DIRECTORY is the directory to search for Emacs Lisp files.
+
+Optional argument RECIPE is a plist containing package metadata, which may
+include the repository URL."
   (let* ((files (directory-files (project-root (project-current nil directory))
                                  t
                                  directory-files-no-dot-files-regexp))
@@ -120,9 +125,15 @@
           (when-let ((provided
                       (melpazoid-flymake--provided-feature)))
             (push provided cands)))))
-    (if (= 1 (length cands))
-        (car cands)
-      (completing-read "Package name: " cands))))
+    (cond ((not cands)
+           (let ((name
+                  (if-let ((repo (plist-get recipe :repo)))
+                      (car (last (split-string repo "/" t)))
+                    (file-name-nondirectory (directory-file-name directory)))))
+             (read-string "Package name: " name)))
+          ((length= cands 1)
+           (car cands))
+          (t (completing-read "Package name: " cands)))))
 
 (defun melpazoid-flymake-get-recipe ()
   "Return recipe for current repo."
