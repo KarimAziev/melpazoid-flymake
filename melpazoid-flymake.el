@@ -143,8 +143,8 @@ include the repository URL."
         (recipe
          (melpazoid-flymake-get-recipe-plist)))
     (list name
-          :repo (prin1-to-string (plist-get recipe :repo))
-          :fetcher (plist-get recipe :host))))
+          :fetcher (plist-get recipe :host)
+          :repo (prin1-to-string (plist-get recipe :repo)))))
 
 (defun melpazoid-flymake-get-melpa-recipe-in-dir (directory &optional
                                                             package-name)
@@ -160,8 +160,8 @@ Recipe is a list, e.g. (PACKAGE-NAME :repo \"owner/repo\" :fetcher github)."
     (list (if (stringp name)
               (intern name)
             name)
-          :repo (plist-get recipe :repo)
-          :fetcher (intern (plist-get recipe :host)))))
+          :fetcher (intern (plist-get recipe :host))
+          :repo (plist-get recipe :repo))))
 
 (defun melpazoid-flymake-download-url (url)
   "Download URL and return stirng."
