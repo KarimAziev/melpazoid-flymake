@@ -38,6 +38,8 @@
   :group 'melpazoid
   :type 'directory)
 
+(defvar melpazoid-flymake-github-workflow-template nil)
+
 (defun melpazoid-flymake-lint-util-ssh-to-https (ssh-remote)
   "Convert SSH-REMOTE to https url."
   (with-temp-buffer
@@ -56,7 +58,7 @@
 
 (defun melpazoid-flymake-lint-util-remotes-alist ()
   "Return alist of remotes and associated urls (REMOTE-NAME . REMOTE-URL)."
-  (when-let ((remotes
+  (when-let* ((remotes
               (with-temp-buffer
                 (when (= 0 (apply #'call-process "git" nil t nil
                                   '("remote" "-v")))
@@ -122,12 +124,12 @@ include the repository URL."
           (emacs-lisp-mode))
         (progn
           (insert-file-contents file)
-          (when-let ((provided
+          (when-let* ((provided
                       (melpazoid-flymake--provided-feature)))
             (push provided cands)))))
     (cond ((not cands)
            (let ((name
-                  (if-let ((repo (plist-get recipe :repo)))
+                  (if-let* ((repo (plist-get recipe :repo)))
                       (car (last (split-string repo "/" t)))
                     (file-name-nondirectory (directory-file-name directory)))))
              (read-string "Package name: " name)))
@@ -195,8 +197,10 @@ Recipe is a list, e.g. (PACKAGE-NAME :repo \"owner/repo\" :fetcher github)."
                     (melpazoid-flymake-get-melpa-recipe-in-dir
                      directory)
                     nil
-                    (melpazoid-flymake-download-url
-                     "https://raw.githubusercontent.com/riscy/melpazoid/master/melpazoid.yml"))))
+                    (or melpazoid-flymake-github-workflow-template
+                        (setq melpazoid-flymake-github-workflow-template
+                              (melpazoid-flymake-download-url
+                               "https://raw.githubusercontent.com/riscy/melpazoid/master/melpazoid.yml"))))))
                (write-region melpazoid-str nil
                              (expand-file-name
                               "melpazoid.yml" dir))))))))
