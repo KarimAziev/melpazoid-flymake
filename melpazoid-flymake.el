@@ -191,16 +191,17 @@ Recipe is a list, e.g. (PACKAGE-NAME :repo \"owner/repo\" :fetcher github)."
                   (expand-file-name ".github/workflows" directory)))
              (unless (file-exists-p dir)
                (make-directory dir 'parents))
-             (let
-                 ((melpazoid-str
-                   (melpazoid-flymake-replace-template
-                    (melpazoid-flymake-get-melpa-recipe-in-dir
-                     directory)
-                    nil
-                    (or melpazoid-flymake-github-workflow-template
-                        (setq melpazoid-flymake-github-workflow-template
-                              (melpazoid-flymake-download-url
-                               "https://raw.githubusercontent.com/riscy/melpazoid/master/melpazoid.yml"))))))
+             (let ((melpazoid-str
+                    (melpazoid-flymake-replace-template
+                     (melpazoid-flymake-get-melpa-recipe-in-dir
+                      directory)
+                     nil
+                     (or melpazoid-flymake-github-workflow-template
+                         (setq melpazoid-flymake-github-workflow-template
+                               (replace-regexp-in-string "actions/checkout@v\\(3\\)\n" "4"
+                                                         (melpazoid-flymake-download-url
+                                                          "https://raw.githubusercontent.com/riscy/melpazoid/master/melpazoid.yml")
+                                                         nil nil 1))))))
                (write-region melpazoid-str nil
                              (expand-file-name
                               "melpazoid.yml" dir))))))))
